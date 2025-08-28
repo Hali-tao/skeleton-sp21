@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author TODO: Huang Yuhao
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -113,6 +113,59 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+        int size = board.size();
+
+        // 1. 设置视角，将当前方向设置为“北”以便统一处理
+        board.setViewingPerspective(side);
+
+        // 逻辑处理部分：遍历每一列
+        for (int col = 0; col < size; col++) {
+            // 此数组或数据结构用于记录当前列中哪些位置的瓷砖已经合并过，避免一次移动中多次合并:cite[3]。
+            boolean[] merged = new boolean[size]; // 初始化为false
+
+            // 遍历当前列从“上”（移动方向）向“下”的每一行（除了最边上的一行）
+            // 通常从离移动方向最远的瓷砖开始处理
+            for (int row = size - 1; row >= 0; row--) { // 从倒数第二行开始向上遍历
+                Tile t = board.tile(col, row);
+                if (t == null) continue; // 当前位置是空瓷砖，跳过
+
+                int targetRow = row;
+                // 寻找当前瓷砖可以移动到的目标行
+                while (targetRow + 1 < size) {
+                    Tile nextTile = board.tile(col, targetRow + 1);
+                    if (nextTile == null) {
+                        // 下一个位置为空，可以继续向上移动
+                        targetRow++;
+                        changed = true;
+                    } else {
+                        // 下一个位置有瓷砖
+                        if (nextTile.value() == t.value() && !merged[targetRow + 1]) {
+                            // 值相等且目标位置的瓷砖在本轮移动中尚未被合并，可以合并
+                            targetRow++;
+                            merged[targetRow] = true; // 标记该位置已合并
+                            break;
+                        } else {
+                            // 值不相等或不能合并，停止移动
+                            break;
+                        }
+                    }
+                }
+
+                if (targetRow != row) {
+                    // 目标行和当前行不同，说明需要移动
+                    // 移动瓷砖（如果targetRow位置有瓷砖且值相等，则会合并）
+                    boolean moveResult = board.move(col, targetRow, t);
+                    if (moveResult) {
+                        changed = true;
+                        score += board.tile(col, targetRow).value();
+                        // 如果合并成功，可能会得分，这里分数由GUI处理
+                    }
+                }
+            }
+        }
+
+        // 5. 恢复视角
+        board.setViewingPerspective(Side.NORTH);
 
         checkGameOver();
         if (changed) {
@@ -138,6 +191,12 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        for(int x = 0; x < b.size(); x++){
+            for(int y = 0; y < b.size(); y++){
+                if(b.tile(x,y)==null)
+                    return true;
+            }
+        }
         return false;
     }
 
@@ -148,6 +207,14 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        for(int x = 0; x < b.size(); x++){
+            for(int y = 0; y < b.size(); y++){
+                if(b.tile(x,y)==null)
+                    continue;
+                if(b.tile(x,y).value() == MAX_PIECE)
+                    return true;
+            }
+        }
         return false;
     }
 
@@ -159,6 +226,27 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        if(emptySpaceExists(b))
+            return true;
+        for(int col = 0; col < b.size(); col++)
+        {
+            for(int row = 0; row < b.size(); row++) {
+                if(col == b.size() - 1 && row == b.size() - 1)
+                    break;
+                if(col == b.size() - 1){
+                    if(b.tile(col, row).value() == b.tile(col, row + 1).value())
+                        return true;
+                    continue;
+                }
+                if(row == b.size() - 1){
+                    if(b.tile(col, row).value() == b.tile(col + 1, row).value())
+                        return true;
+                    continue;
+                }
+                if (b.tile(col, row).value() == b.tile(col + 1, row).value() || b.tile(col, row).value() == b.tile(col, row + 1).value())
+                    return true;
+            }
+        }
         return false;
     }
 
