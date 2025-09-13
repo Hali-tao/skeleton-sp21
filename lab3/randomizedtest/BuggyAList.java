@@ -44,10 +44,17 @@ public class BuggyAList<Item> {
 
     /** Returns the item from the back of the list. */
     public Item getLast() {
+        if (size == 0) {
+            throw new IllegalStateException("List is empty");
+        }
         return items[size - 1];
     }
+
     /** Gets the ith item in the list (0 is the front). */
     public Item get(int i) {
+        if (i < 0 || i >= size) {
+            throw new IndexOutOfBoundsException("Index: " + i + ", Size: " + size);
+        }
         return items[i];
     }
 
@@ -56,15 +63,22 @@ public class BuggyAList<Item> {
         return size;
     }
 
-    /** Deletes item from back of the list and
-      * returns deleted item. */
+    /** Deletes item from back of the list and returns deleted item. */
     public Item removeLast() {
-        if ((size < items.length / 4) && (size > 4)) {
-            resize(size / 4);
+        if (size == 0) {
+            throw new IllegalStateException("List is empty");
         }
+
         Item x = getLast();
         items[size - 1] = null;
         size = size - 1;
+
+        // 更保守的缩容：确保缩容后至少还有1的容量
+        if (size > 0 && size <= items.length / 4) {
+            int newCapacity = Math.max(1, items.length / 2); // 至少保持容量为1
+            resize(newCapacity);
+        }
+
         return x;
     }
 }
